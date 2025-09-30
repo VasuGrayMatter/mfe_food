@@ -1,13 +1,34 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, updateQuantity } from 'base_app/CartSlice';
-import { postToMockAPI } from 'base_app/ApiUtils'; // Import from base app
 import './FoodList.css';
+
+// Simple local API function
+const postToMockAPI = async (endpoint, data, token = '') => {
+  try {
+    const response = await fetch(`https://68db5a3c23ebc87faa32af49.mockapi.io/users/food_summary`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error posting to mock API:', error);
+    throw error;
+  }
+};
 
 export default function FoodList() {
   const items = useSelector(state => state.inventory.food);
   const cartItems = useSelector(state => state.cart.food);
-  const user = useSelector(state => state.user); // Get user data including token
+  const user = useSelector(state => state.user);
   const dispatch = useDispatch();
 
   const getItemQuantity = (itemId) => {
@@ -33,7 +54,7 @@ export default function FoodList() {
       })),
       totalItems: cartItems.reduce((sum, item) => sum + item.quantity, 0),
       totalPrice: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2),
-      userToken: user.token // Include token for reference
+      userToken: user.token
     };
 
     try {
