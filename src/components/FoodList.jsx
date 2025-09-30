@@ -1,16 +1,50 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, updateQuantity } from 'base_app/CartSlice';
+import { postToMockAPI } from 'base_app/ApiUtils'; // Import from base app
 import './FoodList.css';
 
 export default function FoodList() {
   const items = useSelector(state => state.inventory.food);
   const cartItems = useSelector(state => state.cart.food);
+  const user = useSelector(state => state.user); // Get user data including token
   const dispatch = useDispatch();
 
   const getItemQuantity = (itemId) => {
     const cartItem = cartItems.find(item => item.id === itemId);
     return cartItem ? cartItem.quantity : 0;
+  };
+
+  // Function to post food summary to mock API
+  const sendFoodSummaryToAPI = async () => {
+    if (cartItems.length === 0) {
+      alert('No food items in cart to send!');
+      return;
+    }
+
+    const summaryData = {
+      username: user.username,
+      foodItems: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: (item.price * item.quantity).toFixed(2)
+      })),
+      totalItems: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      totalPrice: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2),
+      userToken: user.token // Include token for reference
+    };
+
+    try {
+      console.log('Sending food summary:', summaryData);
+      const result = await postToMockAPI('food_summary', summaryData, user.token);
+      console.log('Food summary posted successfully:', result);
+      alert('Food summary sent to API successfully!');
+    } catch (error) {
+      console.error('Failed to post food summary:', error);
+      alert('Failed to send food summary. Check console for details.');
+    }
   };
 
   const handleAddToCart = (item) => {
@@ -41,7 +75,17 @@ export default function FoodList() {
 
   return (
     <div className="food-list">
-      <h2 className="section-title">🍕 Delicious Food Menu</h2>
+      <div className="food-header">
+        <h2 className="section-title">🍕 Delicious Food Menu</h2>
+        <button 
+          className="send-summary-btn"
+          onClick={sendFoodSummaryToAPI}
+          disabled={cartItems.length === 0}
+        >
+          📤 Send Food Summary to API
+        </button>
+      </div>
+      
       <div className="food-grid">
         {items.map(food => {
           const quantity = getItemQuantity(food.id);
